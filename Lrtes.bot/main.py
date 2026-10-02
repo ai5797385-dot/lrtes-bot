@@ -1,3 +1,28 @@
+import os
+from threading import Thread
+
+# --- Ավելացրեք այս հատվածը ֆայլի սկզբում ---
+from flask import Flask
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def home():
+    return "Bot is running!"
+
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+
+# Գործարկում ենք սերվերը առանձին թրեդով
+Thread(target=run_web).start()
+# ---------------------------------------------
+
+# Այստեղ սկսվում է ձեր բոտի կոդը (օրինակ՝ bot.infinity_polling(), asyncio.run(main()) և այլն)
+# ... ձեր մնացած կոդը ...
 import asyncio
 import os
 import random
