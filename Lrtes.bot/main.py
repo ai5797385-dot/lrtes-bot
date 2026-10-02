@@ -10,9 +10,9 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPri
 from google import genai
 
 # --- ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ ---
-BOT_TOKEN = "ՁԵՐ_ԲՈՏԻ_ԹՈՔԵՆԸ"
-GEMINI_API_KEY = "ՁԵՐ_GEMINI_API_ԿԵՅԸ"
-REAL_ADMIN_ID = 123456789  # ⚠️️ Գրեք ձեր իրական Telegram-ի User ID-ն (թիվով)
+BOT_TOKEN = "8929284091:AAFCK5Ke67z6Pciwuo6qYGJ91DBaGhwx7sE"
+GEMINI_API_KEY = "gemini app key"
+REAL_ADMIN_ID = 6614409372  # ⚠️️ Գրեք ձեր իրական Telegram-ի User ID-ն (թիվով)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
