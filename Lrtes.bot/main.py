@@ -11,7 +11,7 @@ from google import genai
 
 # Կարգավորումներ - Լրացրու այստեղ քո տվյալները
 TOKEN = os.getenv("8929284091:AAFCK5Ke67z6Pciwuo6qYGJ91DBaGhwx7sE")
-ADMIN_ID = int(os.getenv("6614409372"))
+ADMIN_ID = 6614409372
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 logging.basicConfig(level=logging.INFO)
