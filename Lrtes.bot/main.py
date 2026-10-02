@@ -5,12 +5,14 @@ from flask import Flask, request
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatPermissions
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.storage.memory import MemoryStorage
+from google import genai
 
-# Կարգավորումներ (Անհրաժեշտ է փոխարինել ձեր տվյալներով կամ environment variables-ով)
-TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "YOUR_ADMIN_TELEGRAM_ID"))
+# Կարգավորումներ - Լրացրու այստեղ քո տվյալները
+TOKEN = os.getenv("8929284091:AAFCK5Ke67z6Pciwuo6qYGJ91DBaGhwx7sE")
+ADMIN_ID = int(os.getenv("6614409372"))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
@@ -18,14 +20,13 @@ storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
 app = Flask(__name__)
+genai_client = genai.Client(api_key=GEMINI_API_KEY)
 
-# Հիշողության բազա (տվյալների պահպանման համար)
+# Հիշողության բազա
 users_db = {}          # user_id -> { 'username': ..., 'score': 0, 'banned': False }
-top_scores = {}        # user_id -> score
 active_games = {}      # chat_id -> game_state
 bot_theme = "normal"   # normal, new_year, halloween, valentin
 
-# Թեմատիկ անվանումներ
 def get_roles():
     if bot_theme == "new_year":
         return {"spy": "Ձմեռ պապիկ", "player": "Ձնծաղիկ", "chat_title": "Ամանորյա Լրտես"}
@@ -36,7 +37,6 @@ def get_roles():
     else:
         return {"spy": "Լրտես", "player": "Հասարակ խաղացող", "chat_title": "Հայկական Լրտես"}
 
-# --- / START և ՀԻՄՆԱԿԱՆ ՄԵՆՅՈՒ ---
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
@@ -63,7 +63,6 @@ async def cmd_start(message: types.Message):
     )
     await message.answer(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
 
-# Կոճակների մշակում (Callback-ներ)
 @dp.callback_query()
 async def callback_handler(call: types.CallbackQuery):
     if call.data == "donate_admin":
@@ -72,7 +71,6 @@ async def callback_handler(call: types.CallbackQuery):
         await call.message.answer("Գրեք ձեր անանուն նամակը որպես պատասխան այս հաղորդագրությանը, և այն կփոխանցվի ադմինին։")
     await call.answer()
 
-# --- ԽԱՂԻ ՀՐԱՄԱՆՆԵՐ ---
 @dp.message(Command("game_hay_lrtes"))
 async def cmd_game_init(message: types.Message):
     chat_id = message.chat.id
@@ -82,7 +80,7 @@ async def cmd_game_init(message: types.Message):
 
     active_games[chat_id] = {
         "status": "waiting",
-        "players": {}, # user_id -> name
+        "players": {},
         "paid_count": 0
     }
 
@@ -111,13 +109,11 @@ async def join_game_callback(call: types.CallbackQuery):
         await call.answer("Խաղցողների առավելագույն քանակը լրացել է:", show_alert=True)
         return
 
-    # Վճարման ստուգում առաջին 12-ից հետո
     if len(game["players"]) >= 12:
-        # Այստեղ կարող է ստուգվել Telegram Stars վճարումը
         game["paid_count"] += 1
 
     game["players"][user_id] = name
-    await call.answer(ف"Դուք հաջողությամբ միացաք խաղին! Մասնակիցներ: {len(game['players'])}")
+    await call.answer("Դուք հաջողությամբ միացաք խաղին!")
     await call.message.edit_text(f"🎮 **{get_roles()['chat_title']}**\nՄիացած մասնակիցներ ({len(game['players'])}/20):\n" + "\n".join([f"• {n}" for n in game["players"].values()]), parse_mode=ParseMode.MARKDOWN, reply_markup=call.message.reply_markup)
 
 @dp.message(Command("start_hay_lrtes"))
@@ -135,15 +131,20 @@ async def start_game_process(message: types.Message):
     game["status"] = "playing"
     players = list(game["players"].keys())
     
-    # Լրտեսների որոշում ըստ քանակի
     p_count = len(players)
     spy_count = 1 if p_count <= 5 else (2 if p_count <= 8 else 3)
     
     spies = random.sample(players, spy_count)
     roles = get_roles()
 
-    # Գաղտնի բառի ստացում (օրինակ Ջեմինիից կամ հիմնական բառարանից)
-    secret_word = random.choice(["Խնձոր", "Հեռախոս", "Մեքենա", "Աթոռ", "Համակարգիչ"])
+    try:
+        response = genai_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents='Գրիր մեկ պարզ հայերեն գոյական (առարկա կամ իր), որը կարող է օգտագործվել Լրտես խաղի համար։ Գրիր միայն բառը, առանց հավելյալ տեքստի։',
+        )
+        secret_word = response.text.strip()
+    except Exception:
+        secret_word = "Խնձոր"
 
     for uid in players:
         try:
@@ -164,11 +165,9 @@ async def show_top(message: types.Message):
         text += f"{i}. {data['username']} — {data['score']} միավոր\n"
     await message.answer(text, parse_mode=ParseMode.MARKDOWN)
 
-# --- ԱԴՄԻՆԻ ՀՐԱՄԱՆՆԵՐ ---
 @dp.message(Command("ban"))
 async def admin_ban(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
+    if message.from_user.id != ADMIN_ID: return
     args = message.text.split()
     if len(args) < 2:
         await message.answer("Օգտագործումը՝ /ban username")
@@ -183,8 +182,7 @@ async def admin_ban(message: types.Message):
 
 @dp.message(Command("unban"))
 async def admin_unban(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
+    if message.from_user.id != ADMIN_ID: return
     args = message.text.split()
     if len(args) < 2:
         await message.answer("Օգտագործումը՝ /unban username")
@@ -232,13 +230,10 @@ async def admin_text(message: types.Message):
     if text_to_send:
         await message.answer(f"📢 **Հայտարարություն ադմինից:**\n\n{text_to_send}", parse_mode=ParseMode.MARKDOWN)
 
-# Flask սերվեր Render-ի համար
 @app.route("/")
 def index():
     return "Bot is running!"
 
 if __name__ == "__main__":
-    import asyncio
     port = int(os.environ.get("PORT", 5000))
-    # Սերվերի և բոտի համատեղ աշխատանքի համար
     app.run(host="0.0.0.0", port=port)
