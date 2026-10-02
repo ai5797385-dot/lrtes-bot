@@ -10,7 +10,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPri
 from google import genai
 
 # --- ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ ---
-BOT_TOKEN = "bot_token"
+BOT_TOKEN = "8929284091:AAFCK5Ke67z6Pciwuo6qYGJ91DBaGhwx7sE"
 GEMINI_API_KEY = "gemini app key"
 REAL_ADMIN_ID = 6614409372  # ⚠️️ Գրեք ձեր իրական Telegram-ի User ID-ն (թիվով)
 
